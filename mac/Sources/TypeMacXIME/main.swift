@@ -4,11 +4,11 @@
 import Cocoa
 import InputMethodKit
 
-// Input Method Kit のサーバーを起動する。入力欄 (クライアント) ごとに MeltypeInputController が作られる。
-let connectionName = Bundle.main.object(forInfoDictionaryKey: "InputMethodConnectionName") as? String ?? "Meltype_Connection"
+// Input Method Kit のサーバーを起動する。入力欄 (クライアント) ごとに TypeMacXInputController が作られる。
+let connectionName = Bundle.main.object(forInfoDictionaryKey: "InputMethodConnectionName") as? String ?? "TypeMacX_Connection"
 guard let bundleIdentifier = Bundle.main.bundleIdentifier,
       let server = IMKServer(name: connectionName, bundleIdentifier: bundleIdentifier) else {
-    NSLog("Meltype: IMKServer を起動できませんでした (Meltype.app から起動してください)")
+    NSLog("TypeMacX: IMKServer を起動できませんでした (TypeMacX.app から起動してください)")
     exit(1)
 }
 

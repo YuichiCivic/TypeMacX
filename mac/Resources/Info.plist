@@ -5,19 +5,19 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ja</string>
 	<key>CFBundleExecutable</key>
-	<string>Meltype</string>
+	<string>TypeMacX</string>
 	<key>CFBundleIdentifier</key>
-	<string>io.github.yksr-melt.inputmethod.Meltype</string>
+	<string>jp.co.aibos.inputmethod.TypeMacX</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Meltype</string>
+	<string>TypeMacX</string>
 	<key>CFBundleDisplayName</key>
-	<string>Meltype</string>
+	<string>TypeMacX</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.1</string>
+	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>7</string>
 	<key>LSMinimumSystemVersion</key>
@@ -27,16 +27,16 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (C) 2026 雪代 / Yukishiro. GPL-3.0-or-later</string>
+	<string>Copyright (C) 2026 AIBOS Inc. Based on Meltype by 雪代 / Yukishiro.</string>
 
 	<key>InputMethodConnectionName</key>
-	<string>io.github.yksr-melt.inputmethod.Meltype_Connection</string>
+	<string>jp.co.aibos.inputmethod.TypeMacX_Connection</string>
 	<key>InputMethodServerControllerClass</key>
-	<string>MeltypeInputController</string>
+	<string>TypeMacXInputController</string>
 	<key>InputMethodServerDelegateClass</key>
-	<string>MeltypeInputController</string>
+	<string>TypeMacXInputController</string>
 	<key>TISInputSourceID</key>
-	<string>io.github.yksr-melt.inputmethod.Meltype</string>
+	<string>jp.co.aibos.inputmethod.TypeMacX</string>
 	<key>TISIntendedLanguage</key>
 	<string>ja</string>
 	<key>tsInputMethodIconFileKey</key>
@@ -55,10 +55,10 @@
 	<dict>
 		<key>tsInputModeListKey</key>
 		<dict>
-			<key>io.github.yksr-melt.inputmethod.Meltype.Japanese</key>
+			<key>jp.co.aibos.inputmethod.TypeMacX.Japanese</key>
 			<dict>
 				<key>TISInputSourceID</key>
-				<string>io.github.yksr-melt.inputmethod.Meltype.Japanese</string>
+				<string>jp.co.aibos.inputmethod.TypeMacX.Japanese</string>
 				<key>TISIntendedLanguage</key>
 				<string>ja</string>
 				<key>tsInputModeScriptKey</key>
@@ -86,7 +86,7 @@
 		</dict>
 		<key>tsVisibleInputModeOrderedArrayKey</key>
 		<array>
-			<string>io.github.yksr-melt.inputmethod.Meltype.Japanese</string>
+			<string>jp.co.aibos.inputmethod.TypeMacX.Japanese</string>
 		</array>
 	</dict>
 </dict>

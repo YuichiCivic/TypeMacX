@@ -8,8 +8,8 @@ import InputMethodKit
 /// 入力欄 (クライアント) ごとの IME。キーを本体 (libMeltypeNative.dylib) に渡し、
 /// 返ってきた結果 (確定する文字・変換中の表示・候補) を入力欄に反映する。
 /// Info.plist の InputMethodServerControllerClass に書いた名前で、Input Method Kit が作る。
-@objc(MeltypeInputController)
-final class MeltypeInputController: IMKInputController {
+@objc(TypeMacXInputController)
+final class TypeMacXInputController: IMKInputController {
     private var session: UnsafeMutableRawPointer?
     private var candidateList: [String] = []
     private var hasMarkedText = false
@@ -90,7 +90,7 @@ final class MeltypeInputController: IMKInputController {
 
     override func menu() -> NSMenu! {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Meltype のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "TypeMacX のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "不具合の報告・提案… (Mac 版はプレビュー版です)", action: #selector(openReport(_:)), keyEquivalent: "")
         return menu
     }

@@ -7,7 +7,7 @@ namespace Meltype.Config;
 internal static class AppPaths
 {
     public static string DataDirectory { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Meltype");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TypeMacX");
 
     /// <summary>旧名 (AutoIME) のときの保存場所。</summary>
     private static string OldDataDirectory =>

@@ -6,14 +6,14 @@ import KanaKanjiConverterModuleWithDefaultDictionary
 
 /// azooKey の変換エンジン (AzooKeyKanaKanjiConverter) で、ひらがなを漢字かな混じりに変換する。
 /// azooKey の API が変わったときは、このファイルだけ直せばよいようにしてある。
-final class MeltypeConverter {
-    static let shared = MeltypeConverter()
+final class TypeMacXConverter {
+    static let shared = TypeMacXConverter()
 
     // 同梱の辞書 (KanaKanjiConverterModuleWithDefaultDictionary) を使う変換エンジン。
-    // azooKey の withDefaultDictionary() は辞書を Bundle.module で探すが、Bundle.module は Meltype.app の直下か
+    // azooKey の withDefaultDictionary() は辞書を Bundle.module で探すが、Bundle.module は TypeMacX.app の直下か
     // ビルドしたマシンのフォルダーしか見ない。辞書のバンドルは Contents/Resources に入れているので、見つからずに落ちていた (#26)。
-    // (Meltype.app の直下には置けない: 署名が通らない)。なので、辞書の場所をこちらで渡す。
-    private let converter = KanaKanjiConverter(dicdataStore: DicdataStore(dictionaryURL: MeltypeConverter.resource("Dictionary")))
+    // (TypeMacX.app の直下には置けない: 署名が通らない)。なので、辞書の場所をこちらで渡す。
+    private let converter = KanaKanjiConverter(dicdataStore: DicdataStore(dictionaryURL: TypeMacXConverter.resource("Dictionary")))
     private let options: ConvertRequestOptions
 
     /// 同梱の辞書のバンドル (Contents/Resources に入れている) の中のフォルダー。
@@ -32,9 +32,9 @@ final class MeltypeConverter {
     }
 
     private init() {
-        // azooKey の学習データ・ユーザー辞書の置き場所 (Meltype では学習しない設定にしているので、ほぼ使わない)。
+        // azooKey の学習データ・ユーザー辞書の置き場所 (TypeMacX では学習しない設定にしているので、ほぼ使わない)。
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Meltype/azooKey", isDirectory: true)
+            .appendingPathComponent("TypeMacX/azooKey", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         options = ConvertRequestOptions(
             requireJapanesePrediction: .disabled,
@@ -43,9 +43,9 @@ final class MeltypeConverter {
             learningType: .nothing,
             memoryDirectoryURL: directory,
             sharedContainerURL: directory,
-            textReplacer: TextReplacer(emojiDataProvider: { MeltypeConverter.emojiDictionary() }),
+            textReplacer: TextReplacer(emojiDataProvider: { TypeMacXConverter.emojiDictionary() }),
             specialCandidateProviders: KanaKanjiConverter.defaultSpecialCandidateProviders,
-            metadata: .init(versionString: "Meltype 1.0.1")
+            metadata: .init(versionString: "TypeMacX 1.0.1")
         )
     }
 

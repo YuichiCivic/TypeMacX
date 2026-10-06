@@ -25,7 +25,7 @@ private typealias FreeFunction = @convention(c) (UnsafeMutableRawPointer?) -> Vo
 /// (ひらがな, 文脈) → 「読み\t変換結果」を改行でつないだもの (文節ごと)。
 private let clausesCallback: ClausesCallback = { hiragana, context in
     guard let hiragana else { return nil }
-    let clauses = MeltypeConverter.shared.clauses(for: String(cString: hiragana), context: context.map { String(cString: $0) })
+    let clauses = TypeMacXConverter.shared.clauses(for: String(cString: hiragana), context: context.map { String(cString: $0) })
     guard !clauses.isEmpty else { return nil }
     return strdup(clauses.map { "\($0.reading)\t\($0.text)" }.joined(separator: "\n"))
 }
@@ -33,7 +33,7 @@ private let clausesCallback: ClausesCallback = { hiragana, context in
 /// 読み → 候補を改行でつないだもの。
 private let candidatesCallback: CandidatesCallback = { reading in
     guard let reading else { return nil }
-    let candidates = MeltypeConverter.shared.candidates(for: String(cString: reading))
+    let candidates = TypeMacXConverter.shared.candidates(for: String(cString: reading))
     return strdup(candidates.joined(separator: "\n"))
 }
 
@@ -69,7 +69,7 @@ struct CompositionView: Decodable {
     let meaning: String?
 }
 
-/// libMeltypeNative.dylib を読み込んで呼ぶ。Meltype.app/Contents/Frameworks に置く (build.sh)。
+/// libMeltypeNative.dylib を読み込んで呼ぶ。TypeMacX.app/Contents/Frameworks に置く (build.sh)。
 final class NativeCore {
     static let shared = NativeCore()
 
@@ -91,7 +91,7 @@ final class NativeCore {
         let handle = dlopen(path, RTLD_NOW)
         library = handle
         if handle == nil, let error = dlerror() {
-            NSLog("Meltype: %@ を読み込めませんでした: %@", path, String(cString: error))
+            NSLog("TypeMacX: %@ を読み込めませんでした: %@", path, String(cString: error))
         }
         func symbol<T>(_ name: String, as type: T.Type) -> T? {
             guard let handle, let pointer = dlsym(handle, name) else { return nil }
@@ -161,7 +161,7 @@ final class NativeCore {
         do {
             return try JSONDecoder().decode(SessionResult.self, from: json)
         } catch {
-            NSLog("Meltype: 結果を読めませんでした: %@", String(describing: error))
+            NSLog("TypeMacX: 結果を読めませんでした: %@", String(describing: error))
             return nil
         }
     }

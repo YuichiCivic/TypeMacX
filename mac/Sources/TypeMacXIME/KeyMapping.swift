@@ -4,7 +4,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Mac のキー (キーコード・文字) を、Meltype の本体が使う Windows の仮想キーコードにする。
+/// Mac のキー (キーコード・文字) を、TypeMacX の本体が使う Windows の仮想キーコードにする。
 /// 本体が見るのは「特別なキーか (Enter・矢印・F7 …)」と「英字・数字のキーか」だけで、入力する文字は別に渡す。
 enum KeyMapping {
     /// 文字を入力するキーで、特別な扱いのないもの (記号など)。本体では文字だけを見る。

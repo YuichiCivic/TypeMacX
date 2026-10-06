@@ -2,24 +2,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Yukishiro
 #
-# Meltype の Mac 版をビルドして ~/Library/Input Methods にインストールする。
+# TypeMacX の Mac 版をビルドして ~/Library/Input Methods にインストールする。
 #   ./build.sh            ビルドしてインストール
-#   ./build.sh --no-install  ビルドだけ (build/Meltype.app)
+#   ./build.sh --no-install  ビルドだけ (build/TypeMacX.app)
 # 必要なもの: macOS 13 以降、Xcode (またはコマンドライン ツール: xcode-select --install)、.NET 10 SDK
 set -euo pipefail
 cd "$(dirname "$0")"
 
 INSTALL=1
-# 入力ソースの「+」の一覧に Meltype が出ない Mac がある (自分で署名した版、macOS 26、#21)。
+# 入力ソースの「+」の一覧に TypeMacX が出ない Mac がある (自分で署名した版、macOS 26、#21)。
 # ことえりと同じ形で、有効な入力ソースの一覧 (AppleEnabledInputSources) に入れておく。もう入っていれば何もしない。
 enable_input_source() {
-    local id=io.github.yksr-melt.inputmethod.Meltype
+    local id=jp.co.aibos.inputmethod.TypeMacX
     defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null | grep -q "$id" && return 0
     defaults write com.apple.HIToolbox AppleEnabledInputSources -array-add \
         "<dict><key>Bundle ID</key><string>$id</string><key>InputSourceKind</key><string>Keyboard Input Method</string></dict>" \
         "<dict><key>Bundle ID</key><string>$id</string><key>Input Mode</key><string>$id.Japanese</string><key>InputSourceKind</key><string>Input Mode</string></dict>"
     killall TextInputMenuAgent 2>/dev/null || true
-    echo "入力ソースに Meltype を追加しました"
+    echo "入力ソースに TypeMacX を追加しました"
 }
 [[ "${1:-}" == "--no-install" ]] && INSTALL=0
 
@@ -30,7 +30,7 @@ case "$(uname -m)" in
 esac
 
 BUILD=build
-APP="$BUILD/Meltype.app"
+APP="$BUILD/TypeMacX.app"
 rm -rf "$BUILD/native" "$APP"
 mkdir -p "$BUILD"
 
@@ -43,10 +43,10 @@ dotnet publish ../src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r
 echo "== 2/3 IME (Swift) をビルド (初回は azooKey の変換エンジンと辞書のダウンロードに時間がかかります)"
 swift build -c release
 
-echo "== 3/3 Meltype.app を組み立て"
+echo "== 3/3 TypeMacX.app を組み立て"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 BIN="$(swift build -c release --show-bin-path)"
-cp "$BIN/MeltypeIME" "$APP/Contents/MacOS/Meltype"
+cp "$BIN/TypeMacXIME" "$APP/Contents/MacOS/TypeMacX"
 # azooKey が使う llama.framework などの動的なフレームワークも同梱する。
 # 入れていなかったため、1.0.0 は起動できなかった (dyld: Library not loaded: @rpath/llama.framework、#13)。
 for framework in "$BIN"/*.framework; do
@@ -61,16 +61,16 @@ while read -r lib; do
     for dylib in "$TOOLCHAIN_SWIFT_LIBS"/swift-*/macosx/"$name" "$TOOLCHAIN_SWIFT_LIBS"/swift/macosx/"$name"; do
         [[ -e "$dylib" ]] && { cp "$dylib" "$APP/Contents/Frameworks/"; break; }
     done
-done < <(otool -L "$BIN/MeltypeIME" | awk '/@rpath\//{print $1}')
+done < <(otool -L "$BIN/TypeMacXIME" | awk '/@rpath\//{print $1}')
 # 実行ファイルの隣 (@loader_path) だけでなく、Contents/Frameworks も探すようにする
-install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/Meltype" 2>/dev/null || true
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/TypeMacX" 2>/dev/null || true
 # @rpath で読み込むライブラリが全部 Contents/Frameworks にあるか確かめる (無ければ配布しない)
 missing=0
 while read -r lib; do
     name="${lib#@rpath/}"
     if [[ ! -e "$APP/Contents/Frameworks/$name" ]]; then echo "同梱されていないライブラリ: $lib" >&2; missing=1; fi
-done < <(otool -L "$APP/Contents/MacOS/Meltype" | awk '/@rpath\//{print $1}')
-[[ $missing -eq 0 ]] || { echo "Meltype.app に必要なライブラリが足りません" >&2; exit 1; }
+done < <(otool -L "$APP/Contents/MacOS/TypeMacX" | awk '/@rpath\//{print $1}')
+[[ $missing -eq 0 ]] || { echo "TypeMacX.app に必要なライブラリが足りません" >&2; exit 1; }
 cp "$BUILD/native/MeltypeNative.dylib" "$APP/Contents/Frameworks/libMeltypeNative.dylib"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/icon.tiff "$APP/Contents/Resources/icon.tiff"
@@ -80,14 +80,14 @@ cp -R Resources/ja.lproj Resources/en.lproj "$APP/Contents/Resources/"
 for bundle in "$BIN"/*.bundle; do
     [[ -e "$bundle" ]] && cp -R "$bundle" "$APP/Contents/Resources/"
 done
-# 署名: 環境変数 MELTYPE_MAC_IDENTITY (Developer ID Application の証明書の名前) があれば配布用に署名する
+# 署名: 環境変数 TYPEMACX_MAC_IDENTITY (Developer ID Application の証明書の名前) があれば配布用に署名する
 # (Hardened Runtime・タイムスタンプ付き。公証 (notarization) は mac.yml で行う)。無ければ自分の Mac で使うための署名。
-if [[ -n "${MELTYPE_MAC_IDENTITY:-}" ]]; then
+if [[ -n "${TYPEMACX_MAC_IDENTITY:-}" ]]; then
     for item in "$APP/Contents/Frameworks/"*; do
-        codesign --force --sign "$MELTYPE_MAC_IDENTITY" --options runtime --timestamp "$item"
+        codesign --force --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$item"
     done
-    codesign --force --deep --sign "$MELTYPE_MAC_IDENTITY" --options runtime --timestamp "$APP"
-    echo "配布用に署名しました: $MELTYPE_MAC_IDENTITY"
+    codesign --force --deep --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$APP"
+    echo "配布用に署名しました: $TYPEMACX_MAC_IDENTITY"
 else
     codesign --force --deep --sign - "$APP"
 fi
@@ -96,11 +96,11 @@ echo "作成しました: $APP"
 if [[ $INSTALL -eq 1 ]]; then
     TARGET="$HOME/Library/Input Methods"
     mkdir -p "$TARGET"
-    pkill -x Meltype 2>/dev/null || true
-    rm -rf "$TARGET/Meltype.app"
+    pkill -x TypeMacX 2>/dev/null || true
+    rm -rf "$TARGET/TypeMacX.app"
     cp -R "$APP" "$TARGET/"
-    echo "インストールしました: $TARGET/Meltype.app"
+    echo "インストールしました: $TARGET/TypeMacX.app"
     enable_input_source
     echo "初めてのときは、いったんログアウトしてログインし直してから、"
-    echo "システム設定 → キーボード → 入力ソース →「編集…」→「+」→ 日本語 → Meltype を追加してください。"
+    echo "システム設定 → キーボード → 入力ソース →「編集…」→「+」→ 日本語 → TypeMacX を追加してください。"
 fi
