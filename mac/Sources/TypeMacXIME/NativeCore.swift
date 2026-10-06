@@ -16,6 +16,9 @@ private typealias HandleKeyFunction = @convention(c) (UnsafeMutableRawPointer?, 
 private typealias CommitFunction = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutablePointer<CChar>?
 private typealias SelectFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> UnsafeMutablePointer<CChar>?
 private typealias SetDirectFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Void
+private typealias SetAppKindFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Void
+private typealias SetCodeJapaneseFunction = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Void
+private typealias ReloadSettingsFunction = @convention(c) () -> Int32
 private typealias DataDirectoryFunction = @convention(c) () -> UnsafeMutablePointer<CChar>?
 private typealias ReportUrlFunction = @convention(c) (UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>?
 private typealias FreeFunction = @convention(c) (UnsafeMutableRawPointer?) -> Void
@@ -81,6 +84,9 @@ final class NativeCore {
     private let commitFunction: CommitFunction?
     private let selectFunction: SelectFunction?
     private let setDirectFunction: SetDirectFunction?
+    private let setAppKindFunction: SetAppKindFunction?
+    private let setCodeJapaneseFunction: SetCodeJapaneseFunction?
+    private let reloadSettingsFunction: ReloadSettingsFunction?
     private let dataDirectoryFunction: DataDirectoryFunction?
     private let reportUrlFunction: ReportUrlFunction?
     private let freeFunction: FreeFunction?
@@ -104,6 +110,9 @@ final class NativeCore {
         commitFunction = symbol("meltype_commit", as: CommitFunction.self)
         selectFunction = symbol("meltype_select_candidate", as: SelectFunction.self)
         setDirectFunction = symbol("meltype_set_direct", as: SetDirectFunction.self)
+        setAppKindFunction = symbol("meltype_set_app_kind", as: SetAppKindFunction.self)
+        setCodeJapaneseFunction = symbol("meltype_set_code_japanese", as: SetCodeJapaneseFunction.self)
+        reloadSettingsFunction = symbol("meltype_reload_settings", as: ReloadSettingsFunction.self)
         dataDirectoryFunction = symbol("meltype_data_directory", as: DataDirectoryFunction.self)
         reportUrlFunction = symbol("meltype_report_url", as: ReportUrlFunction.self)
         freeFunction = symbol("meltype_free", as: FreeFunction.self)
@@ -138,6 +147,22 @@ final class NativeCore {
 
     func setDirect(_ session: UnsafeMutableRawPointer?, _ direct: Bool) {
         setDirectFunction?(session, direct ? 1 : 0)
+    }
+
+    /// 入力しているアプリの種類 (一般・コード・無効) を本体に伝える。
+    func setAppKind(_ session: UnsafeMutableRawPointer?, _ kind: AppKind) {
+        setAppKindFunction?(session, kind.nativeValue)
+    }
+
+    /// 種類が「コード」のアプリで、コードの行でも日本語で入力するか (「かな」キー)。改行で戻る。
+    func setCodeJapanese(_ session: UnsafeMutableRawPointer?, _ japanese: Bool) {
+        setCodeJapaneseFunction?(session, japanese ? 1 : 0)
+    }
+
+    /// config.json を読み直す (設定画面で保存したとき)。開いている入力欄にもすぐ効く。
+    @discardableResult
+    func reloadSettings() -> Bool {
+        (reloadSettingsFunction?() ?? 0) != 0
     }
 
     /// 設定・学習データ・ユーザー辞書の保存場所。

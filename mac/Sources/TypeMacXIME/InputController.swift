@@ -13,6 +13,8 @@ final class TypeMacXInputController: IMKInputController {
     private var session: UnsafeMutableRawPointer?
     private var candidateList: [String] = []
     private var hasMarkedText = false
+    /// 入力しているアプリの種類 (AppProfiles.swift。bundle ID から決める)。
+    private var appKind: AppKind = .general
 
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
@@ -29,15 +31,21 @@ final class TypeMacXInputController: IMKInputController {
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard let event, event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
+        // アプリ別設定で「無効」のアプリでは何もしない (キーをすべてアプリに渡す)。
+        updateAppKind(client)
+        if appKind == .disabled { return false }
 
         // JIS キーボードの「英数」「かな」キー: 英数 (直接入力) ⇔ 日本語。
+        // コードのアプリでは「かな」でコードの行でも日本語にする (改行まで)、「英数」で戻す。
         switch Int(event.keyCode) {
         case kVK_JIS_Eisu:
             apply(NativeCore.shared.commit(session), to: client)
             NativeCore.shared.setDirect(session, true)
+            NativeCore.shared.setCodeJapanese(session, false)
             return true
         case kVK_JIS_Kana:
             NativeCore.shared.setDirect(session, false)
+            if appKind == .code { NativeCore.shared.setCodeJapanese(session, true) }
             return true
         default:
             break
@@ -67,6 +75,21 @@ final class TypeMacXInputController: IMKInputController {
         apply(NativeCore.shared.commit(session), to: client)
     }
 
+    override func activateServer(_ sender: Any!) {
+        super.activateServer(sender)
+        if let client = (sender as? IMKTextInput) ?? (self.client() as? IMKTextInput) { updateAppKind(client) }
+    }
+
+    /// 入力欄のアプリ (bundle ID) の種類を調べ直して本体に伝える。設定 (config.json) を変えたときもすぐ効く。
+    private func updateAppKind(_ client: IMKTextInput) {
+        let kind = AppProfiles.shared.kind(for: client.bundleIdentifier())
+        guard kind != appKind else { return }
+        // 無効にする前に、変換中の内容を確定しておく。
+        if kind == .disabled { apply(NativeCore.shared.commit(session), to: client) }
+        appKind = kind
+        NativeCore.shared.setAppKind(session, kind)
+    }
+
     override func deactivateServer(_ sender: Any!) {
         commitComposition(sender)
         candidatesWindow?.hide()
@@ -90,9 +113,14 @@ final class TypeMacXInputController: IMKInputController {
 
     override func menu() -> NSMenu! {
         let menu = NSMenu()
+        menu.addItem(withTitle: "TypeMacX 設定…", action: #selector(openSettings(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "TypeMacX のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "不具合の報告・提案… (Mac 版はプレビュー版です)", action: #selector(openReport(_:)), keyEquivalent: "")
         return menu
+    }
+
+    @objc private func openSettings(_ sender: Any?) {
+        SettingsWindowController.shared.show()
     }
 
     @objc private func openReport(_ sender: Any?) {
@@ -208,7 +236,8 @@ final class TypeMacXInputController: IMKInputController {
     private func surroundingText(of client: IMKTextInput) -> (String?, String?) {
         let selection = client.selectedRange()
         guard selection.location != NSNotFound else { return (nil, nil) }
-        let start = max(0, selection.location - 20)
+        // コードのアプリでは、コメントの記号 (// # など) が分かるように行頭まで届く長さを読む (本体が変換に使うのは後ろの 20 文字だけ)。
+        let start = max(0, selection.location - (appKind == .code ? 300 : 20))
         let before = client.attributedSubstring(from: NSRange(location: start, length: selection.location - start))?.string
         let after = client.attributedSubstring(from: NSRange(location: selection.location + selection.length, length: 20))?.string
         return (before, after)

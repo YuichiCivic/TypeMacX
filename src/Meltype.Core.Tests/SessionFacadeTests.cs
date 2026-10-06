@@ -98,6 +98,43 @@ internal static class SessionFacadeTests
     }
 
     [Test]
+    public static void CodeApp_CodeLinePassesThrough_CommentComposes()
+    {
+        var session = Create();
+        session.Profile = AppProfile.Code;
+        Assert.True(Type(session, "kyouha", "let x = ").All(r => !r.Consumed), "コードの行では英字をそのままアプリに渡す");
+        Assert.True(Type(session, "kyouha", "    // ").All(r => r.Consumed), "コメントの中では日本語を判定する");
+        Type(session, "\n");
+        Assert.True(Type(session, "kyouha", "> ").All(r => r.Consumed), "AI の入力行 (「> 」の後) では日本語を判定する");
+        Type(session, "\n");
+        Assert.True(!Type(session, "a")[0].Consumed, "キャレットの前が分からなければコードとみなす");
+        // 長い before でも、行頭のコメントの記号で判定する (変換ボックスには後ろだけを渡す)。
+        Assert.True(Type(session, "k", "// " + new string('a', 100) + " ")[0].Consumed, "長い行のコメント");
+        Type(session, "\n");
+    }
+
+    [Test]
+    public static void CodeApp_CodeJapaneseUntilEnter()
+    {
+        var session = Create();
+        session.Profile = AppProfile.Code;
+        session.CodeJapanese = true;
+        Assert.True(Type(session, "kyouha", "let x = ").All(r => r.Consumed), "「かな」を押した行はコードでも日本語");
+        Type(session, "\n");
+        Assert.True(Type(session, "\n")[0] is { Consumed: false }, "変換ボックスが空の Enter はアプリへ");
+        Assert.True(!session.CodeJapanese, "改行でコードに戻る");
+        Assert.True(!Type(session, "a", "let x = ")[0].Consumed, "次の行はコードの行として英数");
+    }
+
+    [Test]
+    public static void DisabledApp_PassesEverything()
+    {
+        var session = Create();
+        session.Profile = AppProfile.Game;
+        Assert.True(Type(session, "kyouha").All(r => !r.Consumed), "無効のアプリではキーをすべてアプリに渡す");
+    }
+
+    [Test]
     public static void Json_IsEscaped()
     {
         var result = new SessionResult(true, [new TextEdit(2, "a\"b\\c\n")], new CompositionView("x", ["y"], 0, true, "h", ["x"], 0));

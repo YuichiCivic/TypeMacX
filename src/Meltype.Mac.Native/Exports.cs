@@ -116,6 +116,41 @@ public static unsafe class Exports
         if (handle != IntPtr.Zero && GCHandle.FromIntPtr(handle).Target is MeltypeSession session) session.Direct = direct != 0;
     }
 
+    /// <summary>
+    /// 入力しているアプリの種類 (mac/Sources/TypeMacXIME/AppProfiles.swift で bundle ID から決める)。
+    /// 0 = 一般、1 = コード (コードエディター・ターミナル)、2 = 無効 (キーをすべてアプリに渡す)。値は <see cref="Config.AppProfile"/> と同じ。
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "meltype_set_app_kind")]
+    public static void SetAppKind(IntPtr handle, int kind)
+    {
+        if (handle == IntPtr.Zero || GCHandle.FromIntPtr(handle).Target is not MeltypeSession session) return;
+        var profile = kind switch { 1 => Config.AppProfile.Code, 2 => Config.AppProfile.Game, _ => Config.AppProfile.General };
+        if (session.Profile != profile) session.Profile = profile;
+    }
+
+    /// <summary>種類が「コード」のアプリで、コードの行でも日本語で入力するか (1) しないか (0)。改行で戻る。</summary>
+    [UnmanagedCallersOnly(EntryPoint = "meltype_set_code_japanese")]
+    public static void SetCodeJapanese(IntPtr handle, int japanese)
+    {
+        if (handle != IntPtr.Zero && GCHandle.FromIntPtr(handle).Target is MeltypeSession session) session.CodeJapanese = japanese != 0;
+    }
+
+    /// <summary>config.json を読み直す (Mac 版の設定画面で保存したとき)。開いている入力欄にもすぐ効く。成功なら 1。</summary>
+    [UnmanagedCallersOnly(EntryPoint = "meltype_reload_settings")]
+    public static int ReloadSettings()
+    {
+        try
+        {
+            MeltypeSession.ReloadSettings();
+            return 1;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Log.Error($"Mac: 設定を読み直せませんでした: {ex}");
+            return 0;
+        }
+    }
+
     /// <summary>データの保存場所 (設定・学習・ユーザー辞書)。meltype_free で解放する。</summary>
     [UnmanagedCallersOnly(EntryPoint = "meltype_data_directory")]
     public static byte* DataDirectory() => ToUtf8(Config.AppPaths.DataDirectory);

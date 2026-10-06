@@ -120,10 +120,7 @@ public sealed class MeltypeSession
     {
         AppPaths.MigrateFromOldName();
         Directory.CreateDirectory(AppPaths.DataDirectory);
-        var settings = Settings.Load(AppPaths.ConfigFile);
-        // 設定で「ファイルにログを書く」を ON にしていれば、Mac でも meltype.log に書く (動かないときの調査用)。
-        Diagnostics.Log.SetFileOutput(settings.FileLog ? AppPaths.LogFile : null);
-        Diagnostics.Log.RecordText = settings.LogTypedText;
+        ReloadSettings();
         var userDirectory = AppPaths.UserDictionaryDirectory;
         var detector = CompositionDetector.CreateDefault(userDirectory);
         // OS のスペルチェッカーが無ければ (Linux)、同梱のよく使う英単語の一覧を使う (meeting を英語と分かるように)。
@@ -132,9 +129,9 @@ public sealed class MeltypeSession
         detector.Memory = languages;
         var options = new CompositionOptions
         {
-            LiveConversion = () => settings.LiveConversion,
-            AutoCorrect = () => settings.AutoCorrectAfterCommit && settings.DetectionLevel != DetectionLevel.Manual,
-            Level = () => settings.DetectionLevel,
+            LiveConversion = () => s_settings.LiveConversion,
+            AutoCorrect = () => s_settings.AutoCorrectAfterCommit && s_settings.DetectionLevel != DetectionLevel.Manual,
+            Level = () => s_settings.DetectionLevel,
             Candidates = CandidateDictionary.Load(userDirectory),
             ContextRules = ContextRules.Load(userDirectory),
             History = new ConversionHistory(AppPaths.ConversionHistoryFile),
@@ -143,19 +140,55 @@ public sealed class MeltypeSession
             Misspellings = MisspellingDictionary.Load(userDirectory),
             Languages = languages,
             Translations = TranslationDictionary.Load(),
-            TranslationCandidates = () => settings.TranslationCandidates,
+            TranslationCandidates = () => s_settings.TranslationCandidates,
             Meanings = MeaningDictionary.Load(),
-            CandidateMeanings = () => settings.ShowCandidateMeanings,
+            CandidateMeanings = () => s_settings.ShowCandidateMeanings,
             RomajiTypos = RomajiTypoCorrector.Load(detector.Romaji),
-            CorrectTypos = () => settings.CorrectTypos,
-            SpaceAroundEnglish = () => settings.SpaceAroundEnglish,
+            CorrectTypos = () => s_settings.CorrectTypos,
+            SpaceAroundEnglish = () => s_settings.SpaceAroundEnglish,
             TranslationHistory = new TranslationHistory(AppPaths.TranslationHistoryFile),
         };
-        return new MeltypeSession(detector, converter, options, () => settings);
+        return new MeltypeSession(detector, converter, options, () => s_settings);
+    }
+
+    /// <summary>すべての入力欄で共有する設定。設定画面で保存したら <see cref="ReloadSettings"/> で読み直し、開いている入力欄にもすぐ効かせる。</summary>
+    private static Settings s_settings = new();
+
+    /// <summary>config.json を読み直す (Mac 版の設定画面で保存したとき・新しい入力欄を作るとき)。</summary>
+    public static void ReloadSettings()
+    {
+        var settings = Settings.Load(AppPaths.ConfigFile);
+        // 設定で「ファイルにログを書く」を ON にしていれば、Mac でも meltype.log に書く (動かないときの調査用)。
+        Diagnostics.Log.SetFileOutput(settings.FileLog ? AppPaths.LogFile : null);
+        Diagnostics.Log.RecordText = settings.LogTypedText;
+        s_settings = settings;
     }
 
     /// <summary>英数 (直接入力) か。true の間はキーをすべてアプリに渡す (Mac の「英数」キー、「かな」キーで戻す)。</summary>
     public bool Direct { get; set; }
+
+    /// <summary>
+    /// 入力しているアプリの種類 (Mac 版は bundle ID から IME 側で決める。mac/Sources/TypeMacXIME/AppProfiles.swift)。
+    /// コード = コードエディター・ターミナル。英数が基本で、コメント・文字列・AI の入力行 (「&gt; 」の後) の中だけ日本語を判定する (Windows 版と同じ)。
+    /// ゲーム = 何もしない (キーをすべてアプリに渡す)。
+    /// </summary>
+    public AppProfile Profile
+    {
+        get => _profile;
+        set
+        {
+            _profile = value;
+            CodeJapanese = false;
+        }
+    }
+
+    private AppProfile _profile = AppProfile.General;
+
+    /// <summary>種類が「コード」のアプリで、コードの行でも日本語で入力するか (Mac の「かな」キー)。改行 (Enter) で戻る。</summary>
+    public bool CodeJapanese { get; set; }
+
+    /// <summary>変換ボックスに渡すキャレットの前の文字列の長さ (コードの行を調べるために長めに受け取ったとき、後ろだけを渡す)。</summary>
+    private const int ContextLength = 20;
 
     /// <summary>変換ボックスに何か入っているか。</summary>
     public bool IsComposing => _controller.IsComposing;
@@ -165,13 +198,26 @@ public sealed class MeltypeSession
     /// </summary>
     public SessionResult HandleKey(int vk, char? ch, bool shift, bool control, bool alt, bool command, string? before = null, string? after = null)
     {
+        // コードのアプリ: 今の行 (コメントの記号など) が分かるように before は長めに受け取る。変換ボックスには今までどおり後ろだけを渡す。
+        var line = before;
+        if (Profile == AppProfile.Code && before is { Length: > ContextLength })
+        {
+            before = before[^ContextLength..];
+            if (char.IsLowSurrogate(before[0])) before = before[1..];
+        }
         _host.Begin(ch, shift, before, after);
         var down = new KeyEvent(vk, ch ?? 0, false, false, false, Environment.TickCount64);
         // Ctrl・Option・Command と一緒のキーは、変換ボックスが空ならアプリの操作 (コピーなど) なので触らない。
         var modifier = control || alt || command;
-        if (Direct || !_settings().Enabled)
+        if (Direct || Profile == AppProfile.Game || !_settings().Enabled)
         {
             return _host.Result(consumed: false);
+        }
+        // コードエディター・ターミナル: コードの中は英数のまま通す (補完もそのまま効く)。コメント・文字列の中は日本語を判定する。
+        if (Profile == AppProfile.Code && !_controller.IsComposing)
+        {
+            if (vk == VirtualKeys.Return) CodeJapanese = false;
+            else if (!modifier && !CodeJapanese && InCode(line)) return _host.Result(consumed: false);
         }
         // 英数へ切り替えるときなどに、Shift を押したことを変換ボックスにも伝える (Shift + 英字は大文字)。
         if (shift && _controller.IsComposing) Feed(new KeyEvent(VirtualKeys.LShift, 0, false, false, false, down.TimeMs));
@@ -202,6 +248,9 @@ public sealed class MeltypeSession
         _controller.SelectCandidate(index);
         return _host.Result(consumed: true);
     }
+
+    /// <summary>キャレットがコード (コメント・文字列・AI の入力行の外) にあるか。キャレットの前の文字列が分からなければコードとみなす。</summary>
+    private static bool InCode(string? before) => before is null || LineContext.ClassifyText(before) == LineKind.Code;
 
     private bool Feed(KeyEvent e, Func<KeyEvent, bool>? starts = null)
     {

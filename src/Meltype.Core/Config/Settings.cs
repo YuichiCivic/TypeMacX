@@ -426,6 +426,13 @@ public sealed class Settings
     [Category("7. アプリ"), DisplayName("独自の種類"), Description("アプリ別設定の「種類」に使える、自分で作る種類です。一般 / コード を元に、判定の強さ・ライブ変換・最初は英数にするか を変えられます (「全体と同じ」なら上の設定のまま)。")]
     public List<AppKind> AppKinds { get; set; } = [];
 
+    /// <summary>
+    /// Mac 版のアプリ別設定 (bundle ID → "code" | "general" | "disabled")。既定の一覧 (mac/Sources/TypeMacXIME/AppProfiles.swift) より優先する。
+    /// 読むのは Mac 版の IME (Swift) で、ここでは config.json を書き直したときに消えないように持っておくだけ。
+    /// </summary>
+    [Browsable(false)]
+    public Dictionary<string, string> AppProfiles { get; set; } = [];
+
     [Category("8. ログ"), DisplayName("ファイルにログを書く"), Description("%LOCALAPPDATA%\\Meltype\\meltype.log にログを書きます (OFF でも、トレイの「ログ / 判定理由」で見られるログは Meltype が動いている間だけメモリに残ります)。判定した語の先頭の数文字・アプリ名・入力欄の名前が含まれます。確定した文字列などは「ログに入力した文字を残す」が ON のときだけ残ります。")]
     public bool FileLog { get; set; }
 
@@ -496,6 +503,7 @@ public sealed class Settings
         var copy = (Settings)MemberwiseClone();
         copy.AppRules = AppRules.Select(r => new AppRule { Process = r.Process, Enabled = r.Enabled, Profile = r.Profile, Kind = r.Kind }).ToList();
         copy.AppKinds = AppKinds.Select(k => k.Clone()).ToList();
+        copy.AppProfiles = new Dictionary<string, string>(AppProfiles ?? []);
         copy.Profiles = (Profiles ?? []).Select(p => p.Clone()).ToList();
         return copy;
     }
@@ -512,6 +520,7 @@ public sealed class Settings
         ImeTimeoutMs = Math.Clamp(ImeTimeoutMs, 50, 2000);
         AppRules ??= [];
         AppKinds ??= [];
+        AppProfiles ??= [];
         AppRules.RemoveAll(r => r is null || string.IsNullOrWhiteSpace(r.Process));
         // プロファイル: 名前の無いもの・同じ名前のものは除き、使っているプロファイルは必ず一覧にある
         Profiles ??= [];
