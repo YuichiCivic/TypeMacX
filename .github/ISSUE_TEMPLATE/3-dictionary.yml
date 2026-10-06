@@ -1,0 +1,37 @@
+name: 辞書に追加してほしい語
+description: 出ない変換候補・英字にしてほしい固有名詞・同音異義語など
+title: "[辞書] "
+labels: ["辞書"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        自分で辞書 (dictionaries/) を直して Pull Request を送ってもらうこともできます。その場合は CONTRIBUTING.md の同意 (CLA) を書いてください。
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 種類
+      options:
+        - カタカナで打ったときに英字の候補を出してほしい (しゃおみ → Xiaomi)
+        - ローマ字として読めても英字のままにしてほしい語 (固有名詞・英単語)
+        - 変換の候補に出してほしい語 (同音異義語・新語)
+        - そのほか
+    validations:
+      required: true
+
+  - type: textarea
+    id: words
+    attributes:
+      label: 語
+      description: 1 行に 1 語。「読み → 出してほしい語」の形で書いてください
+      placeholder: |
+        しゃおみ → Xiaomi
+        ふぁーうぇい → Huawei
+    validations:
+      required: true
+
+  - type: textarea
+    id: note
+    attributes:
+      label: 補足 (どんなときに使う語か など)

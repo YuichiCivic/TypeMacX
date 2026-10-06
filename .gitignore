@@ -1,0 +1,30 @@
+# ビルド結果
+bin/
+obj/
+app-build/
+dist/
+build-check/
+revised-build*/
+tsf-build/
+tsf-update*/
+
+# 開発初期の試作 (今のソースには含まれない)
+legacy/
+
+# エディター
+.vs/
+.vscode/
+*.user
+
+# このフォルダーで .NET を動かしたときに作られる環境のファイル (マシン ID などを含む)
+.appdata/
+.dotnet-home/
+
+# Mac 版のビルド結果
+mac/.build/
+mac/build/
+
+# Mozc の変換ヘルパー (native/mozc/Build-MozcHelper.ps1 で作る)
+native/mozc/bin/
+linux/build/
+tools/data/
