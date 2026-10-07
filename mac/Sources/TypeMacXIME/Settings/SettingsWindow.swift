@@ -17,6 +17,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         tabs.addTabViewItem(Self.tab("変換", symbol: "character.book.closed", ConversionSettingsView(model: model)))
         tabs.addTabViewItem(Self.tab("英単語", symbol: "textformat.abc", EnglishWordsSettingsView(model: model)))
         tabs.addTabViewItem(Self.tab("ユーザー辞書", symbol: "book", UserDictionarySettingsView(model: model)))
+        tabs.addTabViewItem(Self.tab("アプリ", symbol: "square.grid.2x2", AppProfilesView(model: model)))
+        tabs.addTabViewItem(Self.tab(LicenseView.tabTitle, symbol: "key", LicenseView(manager: LicenseManager.shared)))
         tabs.addTabViewItem(Self.tab("このアプリについて", symbol: "info.circle", AboutSettingsView()))
 
         let window = NSWindow(contentViewController: tabs)

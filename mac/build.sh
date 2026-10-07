@@ -78,7 +78,10 @@ done < <(otool -L "$APP/Contents/MacOS/TypeMacX" | awk '/@rpath\//{print $1}')
 [[ $missing -eq 0 ]] || { echo "TypeMacX.app に必要なライブラリが足りません" >&2; exit 1; }
 cp "$BUILD/native/MeltypeNative.dylib" "$APP/Contents/Frameworks/libMeltypeNative.dylib"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+# ビルドした日 (ライセンスのアップデート期間と比べる。License/LicenseKey.swift)
+plutil -replace TMXBuildDate -string "$(date -u +%Y-%m-%d)" "$APP/Contents/Info.plist"
 cp Resources/icon.tiff "$APP/Contents/Resources/icon.tiff"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # システム設定の入力ソースの一覧に出す名前
 cp -R Resources/ja.lproj Resources/en.lproj "$APP/Contents/Resources/"
 # azooKey の辞書などのリソース (Swift Package のリソースバンドル)
@@ -91,10 +94,20 @@ xattr -cr "$APP"
 # 署名: 環境変数 TYPEMACX_MAC_IDENTITY (Developer ID Application の証明書の名前) があれば配布用に署名する
 # (Hardened Runtime・タイムスタンプ付き。公証 (notarization) は mac.yml で行う)。無ければ自分の Mac で使うための署名。
 if [[ -n "${TYPEMACX_MAC_IDENTITY:-}" ]]; then
+    # Sparkle (自動アップデート) の中の補助プログラムは、内側から順に署名してから Sparkle.framework を署名する。
+    # Downloader.xpc は元の entitlements を残す (Sparkle の説明書どおり。--deep で署名し直すと消えるので、下の .app にも --deep は付けない)。
+    SPARKLE_FW="$APP/Contents/Frameworks/Sparkle.framework"
+    if [[ -d "$SPARKLE_FW" ]]; then
+        sign_sparkle() { codesign --force --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$@"; }
+        sign_sparkle "$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc"
+        sign_sparkle --preserve-metadata=entitlements "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc"
+        sign_sparkle "$SPARKLE_FW/Versions/B/Autoupdate"
+        sign_sparkle "$SPARKLE_FW/Versions/B/Updater.app"
+    fi
     for item in "$APP/Contents/Frameworks/"*; do
         codesign --force --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$item"
     done
-    codesign --force --deep --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$APP"
+    codesign --force --sign "$TYPEMACX_MAC_IDENTITY" --options runtime --timestamp "$APP"
     echo "配布用に署名しました: $TYPEMACX_MAC_IDENTITY"
 else
     codesign --force --deep --sign - "$APP"

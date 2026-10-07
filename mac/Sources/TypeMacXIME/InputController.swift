@@ -34,6 +34,12 @@ final class TypeMacXInputController: IMKInputController {
         // アプリ別設定で「無効」のアプリでは何もしない (キーをすべてアプリに渡す)。
         updateAppKind(client)
         if appKind == .disabled { return false }
+        // ライセンスが無く試用期間も終わっていたら、「無効」のアプリと同じくキーをそのまま渡す (License/LicenseManager.swift)。
+        if !LicenseManager.shared.isConversionAllowed {
+            if hasMarkedText { apply(NativeCore.shared.commit(session), to: client) }
+            LicenseManager.shared.noteBlockedKey()
+            return false
+        }
 
         // JIS キーボードの「英数」「かな」キー: 英数 (直接入力) ⇔ 日本語。
         // コードのアプリでは「かな」でコードの行でも日本語にする (改行まで)、「英数」で戻す。
@@ -114,13 +120,28 @@ final class TypeMacXInputController: IMKInputController {
     override func menu() -> NSMenu! {
         let menu = NSMenu()
         menu.addItem(withTitle: "TypeMacX 設定…", action: #selector(openSettings(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: LicenseManager.shared.menuTitle, action: #selector(openLicense(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "ようこそ / 使い方…", action: #selector(openOnboarding(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "アップデートを確認…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "TypeMacX のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "不具合の報告・提案… (Mac 版はプレビュー版です)", action: #selector(openReport(_:)), keyEquivalent: "")
         return menu
     }
 
+    @objc private func openOnboarding(_ sender: Any?) {
+        OnboardingWindowController.shared.show()
+    }
+
+    @objc private func openLicense(_ sender: Any?) {
+        SettingsWindowController.shared.showLicense()
+    }
+
     @objc private func openSettings(_ sender: Any?) {
         SettingsWindowController.shared.show()
+    }
+
+    @objc private func checkForUpdates(_ sender: Any?) {
+        Updater.shared.checkForUpdates()
     }
 
     @objc private func openReport(_ sender: Any?) {

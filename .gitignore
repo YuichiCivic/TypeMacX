@@ -28,3 +28,7 @@ mac/build/
 native/mozc/bin/
 linux/build/
 tools/data/
+
+# ライセンスキーの秘密鍵 (tools/license/keygen で作る。絶対に git に入れない) と発行ツールのビルド結果
+tools/license/private/
+tools/license/.build/

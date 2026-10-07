@@ -14,6 +14,8 @@
 	<string>TypeMacX</string>
 	<key>CFBundleDisplayName</key>
 	<string>TypeMacX</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,6 +30,16 @@
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (C) 2026 AIBOS Inc. Based on Meltype by 雪代 / Yukishiro.</string>
+
+	<!-- 自動アップデート (Sparkle 2、Update/Updater.swift)。公開鍵の対になる秘密鍵はログイン キーチェーン (アカウント typemacx) にある (tools/release/README.md) -->
+	<key>SUFeedURL</key>
+	<string>https://typemacx.com/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>vwNYuy+tC0nhC8UWKFEhbza39smD2PnaTm5u5fN29P8=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 
 	<key>InputMethodConnectionName</key>
 	<string>jp.co.aibos.inputmethod.TypeMacX_Connection</string>

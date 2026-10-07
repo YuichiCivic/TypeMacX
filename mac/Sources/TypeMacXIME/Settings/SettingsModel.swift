@@ -63,6 +63,10 @@ final class SettingsModel: ObservableObject {
     @Published var japaneseWords = ""
     @Published var userWords: [UserWordEntry] = []
 
+    // ---- アプリ別の種類 (config.json の "AppProfiles"。AppProfiles.swift が読む) ----
+    /// ユーザーの設定 (bundle ID → 種類)。キーは書いてあるとおりの大文字小文字。
+    @Published private(set) var appProfiles: [String: AppKind] = [:]
+
     /// 最後に読み書きできなかったときの理由 (画面の下に出す)。
     @Published var errorMessage: String?
 
@@ -128,6 +132,7 @@ final class SettingsModel: ObservableObject {
         englishWords = readText(englishFile)
         japaneseWords = readText(japaneseFile)
         userWords = readUserWords()
+        appProfiles = readAppProfiles()
     }
 
     private func bool(_ key: String, _ fallback: Bool) -> Bool {
@@ -175,6 +180,36 @@ final class SettingsModel: ObservableObject {
             raw.removeValue(forKey: key)
         }
         saveConfig()
+    }
+
+    // ---- アプリ別の種類 ----
+
+    private func readAppProfiles() -> [String: AppKind] {
+        // 手で書いたときのために "appProfiles" も読む (AppProfiles.swift と同じ)。
+        guard let table = (raw["AppProfiles"] ?? raw["appProfiles"]) as? [String: Any] else { return [:] }
+        var result: [String: AppKind] = [:]
+        for (id, value) in table {
+            let id = id.trimmingCharacters(in: .whitespaces)
+            guard !id.isEmpty, let name = value as? String, let kind = AppKind(rawValue: name.lowercased()) else { continue }
+            result[id] = kind
+        }
+        return result
+    }
+
+    /// アプリの種類を決める (nil なら設定を消して既定に戻す)。bundle ID の大文字小文字は区別しない。
+    func setAppProfile(_ bundleIdentifier: String, kind: AppKind?) {
+        let id = bundleIdentifier.trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return }
+        var table = (raw["AppProfiles"] ?? raw["appProfiles"]) as? [String: Any] ?? [:]
+        // 大文字小文字だけ違う同じアプリの行は消してから書く。
+        for key in table.keys where key.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(id) == .orderedSame {
+            table.removeValue(forKey: key)
+        }
+        if let kind { table[id] = kind.rawValue }
+        raw.removeValue(forKey: "appProfiles")
+        raw["AppProfiles"] = table
+        saveConfig()
+        appProfiles = readAppProfiles()
     }
 
     // ---- 英単語・日本語の語の一覧 (空白・改行区切り、# 以降はコメント) ----

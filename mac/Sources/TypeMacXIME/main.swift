@@ -18,4 +18,10 @@ var candidatesWindow: IMKCandidates? = IMKCandidates(server: server, panelType: 
 // 本体 (libMeltypeNative.dylib) を読み込み、漢字変換・英単語の判定の関数を登録しておく。
 NativeCore.shared.initialize()
 
+// 自動アップデート (Sparkle) の確認を、起動から少し待って始める (Update/Updater.swift)。
+Updater.shared.scheduleStart()
+
+// はじめての起動なら、ようこそウィンドウを出す (Onboarding/OnboardingWindow.swift)。
+OnboardingWindowController.showIfFirstLaunch()
+
 NSApplication.shared.run()
