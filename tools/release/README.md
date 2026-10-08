@@ -1,105 +1,79 @@
-# TypeMacX (Mac 版) のリリースと自動アップデート
+# TypeMacX を配る・アップデートする
 
-TypeMacX は App Store を通さずに直接配布するので、自動アップデートには [Sparkle 2](https://sparkle-project.org/) を使います。
-アプリ側のしくみは `mac/Sources/TypeMacXIME/Update/Updater.swift`、設定は `mac/Resources/Info.plist` の `SU…` のキーです。
+TypeMacX は無料 (GNU GPL v3) で配ります。インストーラーとアップデートは GitHub Releases に置き、
+入れている人の TypeMacX は Sparkle で 1 日 1 回新しい版を確かめて知らせます。
 
-| キー | 値 |
-| --- | --- |
-| `SUFeedURL` | `https://typemacx.com/appcast.xml` (仮。サーバーが決まったら直す) |
-| `SUPublicEDKey` | `vwNYuy+tC0nhC8UWKFEhbza39smD2PnaTm5u5fN29P8=` |
-| `SUEnableAutomaticChecks` | `true` |
-| `SUScheduledCheckInterval` | `86400` (1 日 1 回) |
-
-Sparkle の版は `mac/Package.swift` で固定しています (今は 2.10.0)。上げるときは、下のツールも同じ版のものを使ってください (`release.sh` は Package.swift の版を読みます)。
-
-## 署名の鍵 (EdDSA)
-
-- 公開鍵は Info.plist の `SUPublicEDKey` に入っています。
-- **秘密鍵はリポジトリには入っていません。** 作った人の Mac のログイン キーチェーンに、アカウント名 `typemacx` で入っています
-  (Sparkle の `generate_keys --account typemacx` で作成。キーチェーン アクセスでは「https://sparkle-project.org」の項目)。
-- 秘密鍵を無くすと、今まで配った TypeMacX には二度とアップデートを届けられません。必ずバックアップしてください:
+## いつもの手順 (新しい版を出す)
 
 ```sh
-# 書き出す (このファイルは安全な場所に保管し、リポジトリには入れない)
-generate_keys --account typemacx -x typemacx-sparkle-private.key
-# 別の Mac に入れる
-generate_keys --account typemacx -f typemacx-sparkle-private.key
-# 公開鍵を確かめる
-generate_keys --account typemacx -p
+# 1. (任意) リリースノートを書いてコミットする。無ければ前の版からのコミットの一覧になる
+$EDITOR tools/release/notes/0.2.0.md && git add -A && git commit -m "Notes for 0.2.0"
+
+# 2. 出す (版上げ → ビルド → 署名 → 公証 → GitHub Releases まで全部)
+tools/release/publish.sh 0.2.0
 ```
 
-`generate_keys` などのツールは、`mac` で一度ビルドすると `mac/.build/artifacts/sparkle/Sparkle/bin/` にあります
-(無ければ [Sparkle のリリース](https://github.com/sparkle-project/Sparkle/releases) の `Sparkle-2.10.0.tar.xz` の `bin/`)。
+- 入れている人: TypeMacX が「新しい版があります」と知らせ、「インストールして再起動」で更新される
+  (/Library/Input Methods に入っているので、更新のときに Mac のパスワードを聞かれる)。
+  メニューの「アップデートを確認…」で、すぐ確かめることもできる。
+- はじめての人: Releases の `TypeMacX-<版>.pkg` を渡す (または作業場所の `TypeMacX-<版>-手渡し用.zip`。
+  pkg・ソース・説明書・ライセンスが入っている)。
+- 途中で失敗したら、版上げのコミットとタグは自動で取り消される。直してから同じコマンドをもう一度。
 
-## 公証の準備 (最初の 1 回だけ)
+## 最初に一度だけ: 準備
 
-Xcode (notarytool / stapler) と、Apple Developer Program のアカウントが必要です。
-App 用パスワード (appleid.apple.com で作る) をキーチェーンに保存しておきます:
+### 1. 証明書 (Apple Developer Program)
+
+developer.apple.com → Certificates で次の 2 つを作り、ダブルクリックしてキーチェーンに入れる
+(CSR はキーチェーンアクセス → 証明書アシスタント → 認証局に証明書を要求 で作る)。
+
+- **Developer ID Application** (アプリの署名)
+- **Developer ID Installer** (pkg の署名)
+
+名前を確かめて、シェルの設定 (~/.zshrc) に書いておく:
+
+```sh
+security find-identity -v                        # 名前を確かめる
+export TYPEMACX_MAC_IDENTITY="Developer ID Application: AIBOS Inc. (XXXXXXXXXX)"
+export TYPEMACX_INSTALLER_IDENTITY="Developer ID Installer: AIBOS Inc. (XXXXXXXXXX)"
+```
+
+### 2. 公証 (notarization) の準備
+
+appleid.apple.com → サインインとセキュリティ → App 用パスワード を作ってから:
 
 ```sh
 xcrun notarytool store-credentials typemacx-notary \
-    --apple-id "<Apple ID>" --team-id "<チーム ID>" --password "<App 用パスワード>"
+    --apple-id "<Apple ID>" --team-id "XXXXXXXXXX" --password "<App 用パスワード>"
 ```
 
-## リリースの手順
+### 3. GitHub のリポジトリ
 
-1. `mac/Resources/Info.plist` の `CFBundleShortVersionString` (表示する版) と `CFBundleVersion` (ビルド番号) を上げる。
-   **Sparkle は `CFBundleVersion` で新旧を比べる**ので、毎回必ず増やすこと。
-2. Developer ID で署名してビルドする (iCloud で同期していない場所に組み立てる):
+このリポジトリを GitHub の公開リポジトリに push しておく (`gh repo create ... --public --source . --push`)。
+GPL なのでソースは公開する。アップデートの配信先 (appcast.xml) も、このリポジトリの Releases になる:
+`https://github.com/<owner>/<repo>/releases/latest/download/appcast.xml`
 
-   ```sh
-   cd mac
-   export TYPEMACX_BUILD_DIR="$HOME/Library/Caches/TypeMacX/build-release"
-   TYPEMACX_MAC_IDENTITY="Developer ID Application: AIBOS Inc. (XXXXXXXXXX)" ./build.sh --no-install
-   ```
+### 4. 鍵のバックアップ (大事)
 
-   build.sh は Sparkle.framework の中の `Installer.xpc` → `Downloader.xpc` → `Autoupdate` → `Updater.app` → `Sparkle.framework` → `TypeMacX.app` の順 (内側から) に署名します。
-3. 公証・zip・署名・appcast をまとめて行う:
+Sparkle の EdDSA 秘密鍵 (キーチェーン、アカウント `typemacx`) は、アップデートの署名に使う。
+**無くすと、もう配った TypeMacX にアップデートを届けられなくなる。** 書き出して安全な所 (1Password など) に置く:
 
-   ```sh
-   tools/release/release.sh --notarize "$TYPEMACX_BUILD_DIR/TypeMacX.app"
-   ```
+```sh
+mac/.build/artifacts/sparkle/Sparkle/bin/generate_keys --account typemacx -x ~/typemacx-sparkle-key.txt
+```
 
-   中でしていること (手で行うときも同じ):
+公開鍵は `mac/Resources/Info.plist` の `SUPublicEDKey`。別の Mac で出すときは `generate_keys --account typemacx -f <ファイル>` で取り込む。
 
-   ```sh
-   ditto -c -k --keepParent TypeMacX.app TypeMacX-notary.zip
-   xcrun notarytool submit TypeMacX-notary.zip --keychain-profile typemacx-notary --wait
-   xcrun stapler staple TypeMacX.app
-   ditto -c -k --keepParent TypeMacX.app TypeMacX-<版>.zip   # staple した後の .app を zip にする
-   sign_update --account typemacx TypeMacX-<版>.zip           # EdDSA 署名 (sparkle:edSignature と length が出る)
-   generate_appcast --account typemacx --download-url-prefix https://typemacx.com/downloads/ -o appcast.xml <zip を置いたフォルダ>
-   ```
+## 中で何をしているか
 
-4. できた `TypeMacX-<版>.zip` (と差分の `.delta`) を `https://typemacx.com/downloads/` に、`appcast.xml` を `https://typemacx.com/appcast.xml` に置く。
+| スクリプト | すること |
+|---|---|
+| `publish.sh <版>` | Info.plist の版を上げてコミット・タグ → `build-release.sh` → push → `gh release create` |
+| `build-release.sh` | ビルド (無料版) → .app を公証・staple → アップデート用 zip と appcast.xml (Sparkle で署名) → pkg を作って署名・公証 → ソース zip・手渡し用 zip |
+| `build-release.sh --unsigned` | 証明書が無くても一式を作る (手元の確認用。**配らない**) |
+| `pkg-scripts/` | pkg のインストール前後の処理 (古い TypeMacX を止める / 入力ソースに登録する) |
+| `pkg-resources/` | インストーラーの画面、渡す人向けの説明書 |
 
-### release.sh の設定 (環境変数)
-
-| 変数 | 既定 | 内容 |
-| --- | --- | --- |
-| `TYPEMACX_RELEASE_DIR` | `~/Library/Caches/TypeMacX/release` | zip と appcast.xml を置く場所。前の版の zip も残しておくと、appcast に前の版も載り、差分アップデートも作られる |
-| `TYPEMACX_DOWNLOAD_PREFIX` | `https://typemacx.com/downloads/` | zip を置く URL |
-| `TYPEMACX_NOTARY_PROFILE` | `typemacx-notary` | notarytool のキーチェーン プロファイル |
-| `TYPEMACX_SPARKLE_ACCOUNT` | `typemacx` | EdDSA の秘密鍵のアカウント名 |
-| `SPARKLE_BIN` | (自動) | Sparkle のツールの場所 |
-
-リリースノートは、`TYPEMACX_RELEASE_DIR` に zip と同じ名前の `TypeMacX-<版>.html` (または `.md`) を置くと、generate_appcast が appcast に入れます。
-
-## IME の更新と再起動
-
-TypeMacX は `~/Library/Input Methods` に入る LSBackgroundOnly の入力メソッドなので、ふつうのアプリと違う点があります。
-
-- **画面**: IME はふだん Dock にもメニューにも出ない (activation policy が prohibited) ので、Sparkle の画面を出す間だけ
-  `.accessory` にして前に出し、終わったら戻します (設定ウィンドウと同じ。Updater.swift)。
-  入力メニューの「アップデートを確認…」でも、1 日 1 回の自動確認 (起動から 60 秒後に開始) で見つかったときも、同じように出ます。
-- **置き換え**: `~/Library/Input Methods` はユーザーが書き込める場所なので、管理者のパスワードは要りません。
-- **再起動**: 「インストールして再起動」を押すと、Sparkle が TypeMacX のプロセスを終わらせ (`NSApp.terminate`)、
-  別プロセスの Autoupdate が .app を置き換えて、LaunchServices で新しい TypeMacX.app を開き直します。
-  IME は LaunchServices からも起動でき、起動すると IMKServer が同じ接続名で待ち受けるので、ほとんどのアプリはそのまま新しい版で入力できます。
-  また、入力メソッドのプロセスが無いときは、入力ソースが使われた時点で macOS が起動し直すので、開き直しに失敗しても入力できなくなることはありません。
-- **「終了時にインストール」を選んだとき**: IME はふつう終了しないので、ログアウト・再起動・(下の) pkill のときまで更新されません。
-- **うまく切り替わらないとき (回避策)**: 開いていたアプリが古い接続を持ったままで入力できないときは、入力ソースを一度ほかに切り替えて戻すか、
-  `pkill -x TypeMacX` で IME を終わらせてください (次に使うときに macOS が新しい版を起動します。`mac/build.sh` のインストールと同じ方法)。
-
-> 注意: 実機での「インストールして再起動」は、本物の appcast と Developer ID 署名済みの版が揃ってから確かめること
-> (開発用のアドホック署名でも EdDSA 署名が合えば更新できるが、Developer ID 版から更新するときは、新しい版も同じチームの Developer ID で署名されている必要がある)。
+- 作業場所: `~/Library/Caches/TypeMacX/release/dist` (デスクトップは iCloud で同期していて codesign が失敗するため)
+- 対応: macOS 13 以降、Apple シリコン (arm64) のみ
+- Sparkle は CFBundleVersion で新しさを比べる。`publish.sh` が毎回 1 つ上げる
