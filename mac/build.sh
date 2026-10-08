@@ -80,12 +80,14 @@ cp "$BUILD/native/MeltypeNative.dylib" "$APP/Contents/Frameworks/libMeltypeNativ
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 # ビルドした日 (ライセンスのアップデート期間と比べる。License/LicenseKey.swift)
 plutil -replace TMXBuildDate -string "$(date -u +%Y-%m-%d)" "$APP/Contents/Info.plist"
-# 配る版 (Sources/TypeMacXIME/Edition.swift): TYPEMACX_EDITION=free で無料版 (試用期間・ライセンス無し)。
+# 配る版 (Sources/TypeMacXIME/Edition.swift): 既定は無料版 (試用期間・ライセンス無し)。TYPEMACX_EDITION=direct で有料版の仕組みを入れる。
 # 自動アップデートの配信先が無い配り方では TYPEMACX_UPDATES=0。報告先・ソースの入手先は URL を渡す。
-[[ "${TYPEMACX_EDITION:-direct}" == "free" ]] && plutil -replace TMXFreeEdition -bool YES "$APP/Contents/Info.plist"
+[[ "${TYPEMACX_EDITION:-free}" == "free" ]] && plutil -replace TMXFreeEdition -bool YES "$APP/Contents/Info.plist"
 [[ "${TYPEMACX_UPDATES:-1}" == "0" ]] && plutil -replace TMXUpdatesEnabled -bool NO "$APP/Contents/Info.plist" && plutil -replace SUEnableAutomaticChecks -bool NO "$APP/Contents/Info.plist"
 [[ -n "${TYPEMACX_SUPPORT_URL:-}" ]] && plutil -replace TMXSupportURL -string "$TYPEMACX_SUPPORT_URL" "$APP/Contents/Info.plist"
 [[ -n "${TYPEMACX_SOURCE_URL:-}" ]] && plutil -replace TMXSourceURL -string "$TYPEMACX_SOURCE_URL" "$APP/Contents/Info.plist"
+# 自動アップデートの配信先 (appcast.xml の URL)。publish.sh が GitHub Releases の URL を渡す。
+[[ -n "${TYPEMACX_FEED_URL:-}" ]] && plutil -replace SUFeedURL -string "$TYPEMACX_FEED_URL" "$APP/Contents/Info.plist"
 cp Resources/icon.tiff "$APP/Contents/Resources/icon.tiff"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # システム設定の入力ソースの一覧に出す名前
