@@ -1,0 +1,25 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 AIBOS Inc.
+#
+# インストールした TypeMacX を、ログインしている人の入力ソースに登録する。
+# インストーラーは root で動くので、入力ソースの設定はログインしている人として行う。
+APP="/Library/Input Methods/TypeMacX.app"
+ID=jp.co.aibos.inputmethod.TypeMacX
+
+USER_NAME="$(stat -f %Su /dev/console)"
+[[ -z "$USER_NAME" || "$USER_NAME" == "root" || "$USER_NAME" == "loginwindow" ]] && exit 0
+USER_ID="$(id -u "$USER_NAME")"
+as_user() { launchctl asuser "$USER_ID" sudo -u "$USER_NAME" "$@"; }
+
+# 入力ソースとして登録する (ログインし直さなくても「+」の一覧に出るように)
+as_user "$APP/Contents/MacOS/TypeMacX" --register || true
+
+# ことえりと同じ形で、有効な入力ソースの一覧に入れておく。もう入っていれば何もしない。
+if ! as_user defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null | grep -q "$ID"; then
+    as_user defaults write com.apple.HIToolbox AppleEnabledInputSources -array-add \
+        "<dict><key>Bundle ID</key><string>$ID</string><key>InputSourceKind</key><string>Keyboard Input Method</string></dict>" \
+        "<dict><key>Bundle ID</key><string>$ID</string><key>Input Mode</key><string>$ID.Japanese</string><key>InputSourceKind</key><string>Input Mode</string></dict>"
+fi
+killall -u "$USER_NAME" TextInputMenuAgent 2>/dev/null || true
+exit 0

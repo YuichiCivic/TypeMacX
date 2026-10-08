@@ -53,6 +53,7 @@ final class LicenseManager: ObservableObject {
 
     /// 英語・日本語の混ぜ書きの変換を使ってよいか (ライセンスがあるか、試用期間中)。
     var isConversionAllowed: Bool {
+        if Edition.isFree { return true }
         licensed || CFAbsoluteTimeGetCurrent() < trialEnd
     }
 

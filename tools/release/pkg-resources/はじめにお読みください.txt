@@ -1,0 +1,37 @@
+TypeMacX — 日本語と英語を、切り替えずに。
+==========================================
+
+■ 動く環境
+  macOS 13 以降、Apple シリコン (M1 以降) の Mac
+
+■ インストール
+  1. TypeMacX-<版>.pkg をダブルクリックして、画面のとおりに進める (Mac のパスワードを聞かれます)
+  2. システム設定 → キーボード → 入力ソースの「編集…」→ 左下の「+」→ 日本語 → TypeMacX →「追加」
+     (一覧に出ないときは、いったんログアウトしてログインし直す)
+  3. メニューバーの入力メニュー (または Control + Space) で TypeMacX を選ぶ
+
+■ 使い方
+  ローマ字のまま、英語を混ぜて打つだけです。
+    kyouhagoogledekensaku  →  今日はgoogleで検索
+  Xcode・VS Code・ターミナルでは、コードは英語のまま、コメントは日本語になります。
+  入力メニューの「TypeMacX 設定…」「ようこそ / 使い方…」から、設定と説明を開けます。
+
+■ アンインストール
+  1. 入力ソースの一覧から TypeMacX を「−」で外す
+  2. ターミナルで次を実行する
+       sudo rm -rf "/Library/Input Methods/TypeMacX.app"
+       rm -rf ~/Library/Application\ Support/TypeMacX
+
+■ プライバシー
+  入力した文字はすべてこの Mac の中だけで処理し、外部には送りません。
+
+■ ライセンス
+  TypeMacX はフリーソフトウェアです。GNU General Public License v3 (LICENSE.txt) のもとで、
+  自由に使い、調べ、変更し、再配布できます。
+  ソースコードは同梱の TypeMacX-source-<版>.zip に入っています。
+
+  TypeMacX は Meltype (雪代 / Yukishiro、https://github.com/yksr-melt/Meltype、GPL v3) をもとに作られています。
+  使っているもの: azooKey の変換エンジン (MIT)、Sparkle (MIT)、JMdict (CC BY-SA 4.0)、
+  Wiktionary (CC BY-SA 4.0)、SCOWL、Unicode CLDR。詳しくはソースの THIRD-PARTY-NOTICES.md を見てください。
+
+© 2026 AIBOS Inc.

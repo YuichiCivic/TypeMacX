@@ -18,7 +18,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         tabs.addTabViewItem(Self.tab("英単語", symbol: "textformat.abc", EnglishWordsSettingsView(model: model)))
         tabs.addTabViewItem(Self.tab("ユーザー辞書", symbol: "book", UserDictionarySettingsView(model: model)))
         tabs.addTabViewItem(Self.tab("アプリ", symbol: "square.grid.2x2", AppProfilesView(model: model)))
-        tabs.addTabViewItem(Self.tab(LicenseView.tabTitle, symbol: "key", LicenseView(manager: LicenseManager.shared)))
+        if !Edition.isFree {
+            tabs.addTabViewItem(Self.tab(LicenseView.tabTitle, symbol: "key", LicenseView(manager: LicenseManager.shared)))
+        }
         tabs.addTabViewItem(Self.tab("このアプリについて", symbol: "info.circle", AboutSettingsView()))
 
         let window = NSWindow(contentViewController: tabs)
@@ -365,7 +367,7 @@ private struct AboutSettingsView: View {
                 } header: {
                     Text("謝辞")
                 } footer: {
-                    Note("TypeMacX は GNU General Public License v3.0 のもとで配布されます。")
+                    Note("TypeMacX は GNU General Public License v3.0 のもとで配布されます。ソースコードは \(Edition.sourceURL?.absoluteString ?? "配布物に同梱の TypeMacX-source.zip") から入手できます。")
                 }
             }
             .formStyle(.grouped)

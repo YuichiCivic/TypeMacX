@@ -120,11 +120,17 @@ final class TypeMacXInputController: IMKInputController {
     override func menu() -> NSMenu! {
         let menu = NSMenu()
         menu.addItem(withTitle: "TypeMacX 設定…", action: #selector(openSettings(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: LicenseManager.shared.menuTitle, action: #selector(openLicense(_:)), keyEquivalent: "")
+        if !Edition.isFree {
+            menu.addItem(withTitle: LicenseManager.shared.menuTitle, action: #selector(openLicense(_:)), keyEquivalent: "")
+        }
         menu.addItem(withTitle: "ようこそ / 使い方…", action: #selector(openOnboarding(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: "アップデートを確認…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        if Edition.updatesEnabled {
+            menu.addItem(withTitle: "アップデートを確認…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        }
         menu.addItem(withTitle: "TypeMacX のデータフォルダを開く (設定・ユーザー辞書)", action: #selector(openDataFolder(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: "不具合の報告・提案… (Mac 版はプレビュー版です)", action: #selector(openReport(_:)), keyEquivalent: "")
+        if Edition.supportURL != nil {
+            menu.addItem(withTitle: "不具合の報告・提案…", action: #selector(openReport(_:)), keyEquivalent: "")
+        }
         return menu
     }
 
@@ -145,7 +151,7 @@ final class TypeMacXInputController: IMKInputController {
     }
 
     @objc private func openReport(_ sender: Any?) {
-        guard let url = NativeCore.shared.reportUrl else { return }
+        guard let url = Edition.supportURL else { return }
         NSWorkspace.shared.open(url)
     }
 

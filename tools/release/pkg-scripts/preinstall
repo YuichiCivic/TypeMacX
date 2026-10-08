@@ -1,0 +1,7 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 AIBOS Inc.
+#
+# 入れ替える前に、動いている TypeMacX を止める (古い版が残ったまま動き続けないように)。
+pkill -x TypeMacX 2>/dev/null || true
+exit 0
