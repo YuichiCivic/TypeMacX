@@ -37,6 +37,10 @@ jobs:
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
           swift --version
+          # build.sh は swift の場所から互換ライブラリ (libswiftCompatibilitySpan.dylib など) を探すので、
+          # /usr/bin/swift (xcrun の入口) ではなくツールチェーンの中の swift を渡す
+          echo "SWIFT=$(xcrun --find swift)" >> "$GITHUB_ENV"
+          echo "SWIFTC=$(xcrun --find swiftc)" >> "$GITHUB_ENV"
 
       # SwiftPM の取得物とビルド結果 (azooKey・辞書のダウンロードに時間がかかるので残す)
       - uses: actions/cache@v4
@@ -52,7 +56,7 @@ jobs:
         run: dotnet run --project src/Meltype.Core.Tests
 
       - name: ライセンスキーのテスト
-        run: SWIFTC="$(xcrun --find swiftc)" tools/license/test.sh
+        run: tools/license/test.sh
 
       - name: Mac 版をビルド (自分用の署名)
         env:
