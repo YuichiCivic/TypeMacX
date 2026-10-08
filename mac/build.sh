@@ -58,7 +58,8 @@ for framework in "$BIN"/*.framework; do
 done
 # Swift 6.2 以降は、古い macOS 向けの互換ライブラリ (libswiftCompatibilitySpan.dylib など) を @rpath で読む。
 # macOS 26 は OS に入っているが、13〜15 では無いので、ツールチェーンから同梱する (#20)。
-SWIFT_PATH="$(command -v "$SWIFT" 2>/dev/null || xcrun --find swift)"
+# 既定の swift (/usr/bin/swift) は中継するだけなので、互換ライブラリはツールチェーンの本物の場所から探す
+if [[ "$SWIFT" == "swift" ]]; then SWIFT_PATH="$(xcrun --find swift)"; else SWIFT_PATH="$(command -v "$SWIFT")"; fi
 TOOLCHAIN_SWIFT_LIBS="$(dirname "$SWIFT_PATH")/../lib"
 while read -r lib; do
     name="${lib#@rpath/}"
