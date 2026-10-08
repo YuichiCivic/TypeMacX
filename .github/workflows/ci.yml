@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 AIBOS Inc.
+#
+# CI: main への push と PR で、C# のテスト・ライセンスキーのテスト・Mac 版のビルドを確かめる。
+# 署名は自分用 (ad-hoc) だけ。証明書・公証・リリースは扱わない (シークレットは使わない)。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    # Apple シリコン (arm64)。TypeMacX は arm64 だけに対応している
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Swift 6.2 以降が要る (azooKey)。イメージに入っている Xcode 26 のうち一番新しいものを使う
+      - name: Xcode を選ぶ
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n 1)"
+          [[ -n "$XCODE" ]] || { echo "Xcode 26 が見つかりません" >&2; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          swift --version
+
+      # SwiftPM の取得物とビルド結果 (azooKey・辞書のダウンロードに時間がかかるので残す)
+      - uses: actions/cache@v4
+        with:
+          path: |
+            mac/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: swiftpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mac/Package.swift', 'mac/Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: C# のテスト
+        run: dotnet run --project src/Meltype.Core.Tests
+
+      - name: ライセンスキーのテスト
+        run: SWIFTC="$(xcrun --find swiftc)" tools/license/test.sh
+
+      - name: Mac 版をビルド (自分用の署名)
+        env:
+          TYPEMACX_BUILD_DIR: ${{ runner.temp }}/build
+        run: mac/build.sh --no-install
+
+      - name: 署名を確かめる
+        run: codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/build/TypeMacX.app"
+
+      - name: .app を zip にまとめる
+        run: ditto -c -k --keepParent "$RUNNER_TEMP/build/TypeMacX.app" "$RUNNER_TEMP/TypeMacX.app.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TypeMacX-app
+          path: ${{ runner.temp }}/TypeMacX.app.zip
+          retention-days: 7
