@@ -134,7 +134,7 @@ mkdir -p "$WORK/$NAME"
 cp "$OUT/$NAME.pkg" "$OUT/TypeMacX-source-$VERSION.zip" "$ROOT/LICENSE" "$WORK/$NAME/"
 mv "$WORK/$NAME/LICENSE" "$WORK/$NAME/LICENSE.txt"
 cp "$ROOT/tools/release/pkg-resources/はじめにお読みください.txt" "$WORK/$NAME/"
-(cd "$WORK" && ditto -c -k --keepParent "$NAME" "$OUT/$NAME-手渡し用.zip")
+(cd "$WORK" && ditto -c -k --norsrc --keepParent "$NAME" "$OUT/$NAME-手渡し用.zip")
 
 echo
 echo "できました: $OUT"
